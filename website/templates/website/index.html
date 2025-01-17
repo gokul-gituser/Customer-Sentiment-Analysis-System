@@ -1,0 +1,147 @@
+{% extends "website/base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+{% if user.is_authenticated %}
+  Hi {{ user.username }}!
+  <form method="post" action="{% url 'logout' %}">
+    {% csrf_token %}
+    <button type="submit">Logout</button>
+</form>
+    
+  <form id="feedbackForm" method="POST">
+    {% csrf_token %}
+<div>
+    <label for="userName">Name:</label>
+    <input type="text" id="userName" name="user_name" value="{{ user.username }}" readonly>
+  </div>
+    
+    <input type="hidden" id="userId" name="user_id" value="{{ user.id }}">
+
+    <div>
+      <label for="productName">Product:</label>
+      <input type="text" id="productName" name="product_name" placeholder="Enter product name" autocomplete="off">
+      <div id="autocompleteDropdown" style="display: none; background: white; border: 1px solid #ccc;"></div>
+    </div>
+    <div>    
+      <textarea id="feedbackText" rows="10"  required name="feedback_text" placeholder="Enter your feedback"></textarea>
+    </div>
+    <div><button type="submit">Submit</button></div>
+    
+  </form>
+  <p id="sentimentResult"></p>
+
+  <script>
+  // Product Autocomplete
+  // 
+  /*
+  document.getElementById('productName').addEventListener('input', function() {
+    const query = this.value;
+    fetch(`/api/product-name-autocomplete/?q=${query}`)
+        .then(response => response.json())
+        .then(data => {
+            // Handle product suggestions from the API
+            console.log(data);
+        });
+  });
+
+*/
+let selectedProductId = null;
+document.getElementById('productName').addEventListener('input', function () {
+    const query = this.value;
+    const dropdown = document.getElementById('autocompleteDropdown');
+
+    if (!query) {
+        dropdown.style.display = 'none'; 
+        return;
+    }
+
+    fetch(`/api/product-name-autocomplete/?q=${query}`)
+        .then(response => response.json())
+        .then(data => {
+           
+            dropdown.innerHTML = '';
+
+            if (data.length > 0) {
+                dropdown.style.display = 'block'; 
+                data.forEach(product => {
+                    
+                    const item = document.createElement('div');
+                    item.textContent = product.name;
+                    item.dataset.productId = product.id;
+
+                    
+                    item.addEventListener('click', function () {
+                        document.getElementById('productName').value = product.name; 
+                        selectedProductId = product.id; 
+                        dropdown.style.display = 'none'; 
+                    });
+
+                    dropdown.appendChild(item);
+                });
+            } else {
+                dropdown.style.display = 'none'; 
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching autocomplete suggestions:', error);
+            dropdown.style.display = 'none';
+        });
+});
+
+
+document.addEventListener('click', function (event) {
+    const dropdown = document.getElementById('autocompleteDropdown');
+    if (!dropdown.contains(event.target) && event.target.id !== 'productName') {
+        dropdown.style.display = 'none';
+    }
+});
+
+
+  
+  document.getElementById('feedbackForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+  
+    const feedback_text = document.getElementById('feedbackText').value;
+    const user_id = document.getElementById('userId').value;
+    if (!selectedProductId) {
+        alert('Please select a product');
+        return;
+      }
+    
+    fetch('/api/submit-feedback/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken(),  
+        },
+        body: JSON.stringify({
+            customer: user_id,
+            product: selectedProductId,  
+            feedback_text: feedback_text
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log(data.sentiment);
+        document.getElementById('sentimentResult').textContent = `Sentiment: ${data.sentiment}`;
+    });
+  });
+
+
+
+
+  function getCsrfToken() {
+    //  fetch CSRF token 
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    return csrfToken;
+  }
+  </script>
+
+{% else %}
+  <p>You are not logged in</p>
+  <a href="{% url 'login' %}">Log In</a> |
+  <a href="{% url 'signup' %}">Sign Up</a>
+{% endif %}
+{% endblock %}
