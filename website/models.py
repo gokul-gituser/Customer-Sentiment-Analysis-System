@@ -12,7 +12,9 @@ class Product(models.Model):
 
 
 class Feedback(models.Model):
+    # Foreign key to the Customer model
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+     # Foreign key to the Product model
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     feedback_text = models.TextField()
     sentiment = models.CharField(max_length=20)  

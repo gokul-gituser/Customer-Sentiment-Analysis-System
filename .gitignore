@@ -2,3 +2,6 @@
 __pycache__/
 
 sas_env/
+
+
+db.sqlite3
